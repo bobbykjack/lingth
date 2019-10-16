@@ -68,6 +68,20 @@ foreach ($argv as $filename) {
 }
 
 /**
+ * Format line-length results for terminal output
+ *
+ * Options are as follows:
+ *
+ * 'fn' boolean FileName; whether or not to output the relevant filename
+ * 'ln' boolean Line Number; whether to output the line number of long lines
+ * 'sl' boolean Show Length; whether to output the actual length of long lines
+ * 'tr' boolean Tab Replace; whether to output spaces instead of tabs
+ *
+ * @param string $filename Name of file that produced these results
+ * @param array $results Results obtained from check_line_lengths()
+ * @param array $options Options/flags to control behaviour (see above)
+ *
+ * @return string Results formatted for terminal output
  */
 function cli_report($filename, $results, $options)
 {
@@ -93,7 +107,7 @@ function cli_report($filename, $results, $options)
 /**
  * Get usage string
  * 
- * @return String usage
+ * @return string usage
  */
 function usage()
 {
@@ -111,8 +125,8 @@ function usage()
 /**
  * Process a command-line option that requires an argument
  *
- * @param String $arg argument to process
- * @param Array $args full list of unprocessed arguments
+ * @param string $arg argument to process
+ * @param array $args full list of unprocessed arguments
  * 
  * @return int Argument value
  */
