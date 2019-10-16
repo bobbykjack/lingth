@@ -1,0 +1,97 @@
+#!/usr/bin/php
+<?php
+
+/**
+ * lingth
+ *
+ * Identify lines longer than a given character length.
+ *
+ * This script is essentially just a big wrapper around ./lingth.php. It
+ * provides a command-line interface to the function, and supports various
+ * options, multiple files, input redirection. Also provides very basic usage.
+ */
+
+require_once('lingth.php');
+
+if (php_sapi_name() != "cli") {
+    die("cli only");
+    return;
+}
+
+define('NAME', basename(array_shift($argv)));
+
+$opts = array(
+    'fn' => count($argv) > 1,
+);
+
+// Process any command-line options
+while (count($argv) && $argv[0][0] == '-') {
+    $arg = array_shift($argv);
+
+    for ($ch = 1; $ch < strlen($arg); $ch++) {
+        switch ($arg[$ch]) {
+            case 'H': $opts['fn'] = true; break;
+            case 'h': $opts['fn'] = false; break;
+            case 'l': $opts['sl'] = false; break;
+            case 'm': $opts['lm'] = handle_arg($arg, $argv); break;
+            case 'n': $opts['ln'] = false; break;
+            case 'p': $opts['tr'] = false; break;
+            case 't': $opts['tw'] = handle_arg($arg, $argv); break;
+        }
+    }
+}
+
+// Handle any input piped or redirected here
+if (!posix_isatty(STDIN)) {
+    $str = stream_get_contents(STDIN);
+    echo check_line_lengths("(standard input)", $str, $opts);
+} else if (count($argv) == 0) {
+    die(usage());
+}
+
+// Handle filenames passed as parameters
+foreach ($argv as $filename) {
+    if (($path = realpath($filename)) === false) {
+        die(NAME.": $filename: No such file\n");
+    } elseif (is_dir($path)) {
+        die(NAME.": $filename: Is a directory\n");
+    }
+
+    echo check_line_lengths($filename, file_get_contents($path), $opts);
+}
+
+/**
+ * Get usage string
+ * 
+ * @return String usage
+ */
+function usage()
+{
+    return "Usage: ".NAME
+        ." [-H] [-h] [-l] [-m num] [-n] [-p] [-t num] <file> ...\n";
+}
+
+/**
+ * Process a command-line option that requires an argument
+ *
+ * @param String $arg argument to process
+ * @param Array $args full list of unprocessed arguments
+ * 
+ * @return int Argument value
+ */
+function handle_arg($arg, &$args)
+{
+    if (strlen($arg) > 2) {
+        $argval = substr($arg, 2);
+    } elseif (count($args)) {
+        $argval = array_shift($args);
+    } else {
+        die(NAME.": Option requires an argument -- ".$arg[1]."\n");
+    }
+
+    if (!is_numeric($argval)) {
+        die(NAME.": Invalid argument; must be numeric -- ".$argval."\n");
+    }
+
+    return (int)$argval;
+}
