@@ -22,36 +22,47 @@ function check_line_lengths($filename, $contents, $options)
 {
     $defaults = array(
         'tw' => 4,
-        'fn' => false,
         'ln' => true,
-        'sl' => true,
         'lm' => 80,
-        'tr' => true
     );
 
     $options = array_merge($defaults, $options);
     $lines = explode("\n", $contents);
     $encoding = mb_detect_encoding($contents);
-    $out = '';
+    $out = array();
 
     foreach ($lines as $line_number => $line) {
 // Replace TABs with SPACEs so we can count them properly
-        $line_tr = preg_replace_callback(
-            '/^\t+/',
-            function($matches) use($line_number, $options) {
-                return str_repeat(' ', $options['tw'] * strlen($matches[0]));
-            },
-            $line
-        );
+        $line_tr = replace_leading_tabs_with_spaces($line, $options["tw"]);
 
         if (($len = mb_strlen($line_tr, $encoding)) > $options['lm']) {
-            $out .= ($options['fn'] ? $filename.':' : '')
-                .($options['ln'] ? ($line_number + 1).' ' : '')
-                .($options['tr'] ? $line_tr : $line)
-                .($options['sl'] ? " $len" : '')
-                ."\n";
+            $result = array("line" => $line);
+
+            if ($options['ln']) {
+                $result['ln'] = $line_number + 1;
+            }
+
+            if ($options['sl']) {
+                $result['sl'] = $len;
+            }
+
+            $out[] = $result;
         }
     }
 
     return $out;
 }
+
+/**
+ */
+function replace_leading_tabs_with_spaces($str, $tw)
+{
+    return preg_replace_callback(
+        '/^\t+/',
+        function($matches) use($tw) {
+            return str_repeat(' ', $tw * strlen($matches[0]));
+        },
+        $str
+    );
+}
+

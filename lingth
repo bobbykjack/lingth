@@ -21,7 +21,8 @@ if (php_sapi_name() != "cli") {
 define('NAME', basename(array_shift($argv)));
 
 $opts = array(
-    'fn' => count($argv) > 1,
+    'ln' => true,
+    'sl' => true,
 );
 
 // Process any command-line options
@@ -41,10 +42,15 @@ while (count($argv) && $argv[0][0] == '-') {
     }
 }
 
+if (!array_key_exists('fn', $opts)) {
+    $opts['fn'] = count($argv) > 1;
+}
+
 // Handle any input piped or redirected here
 if (!posix_isatty(STDIN)) {
     $str = stream_get_contents(STDIN);
-    echo check_line_lengths("(standard input)", $str, $opts);
+    $results = check_line_lengths("(standard input)", $str, $opts);
+    echo cli_report("(standard input)", $results, $opts);
 } else if (count($argv) == 0) {
     die(usage());
 }
@@ -57,7 +63,31 @@ foreach ($argv as $filename) {
         die(NAME.": $filename: Is a directory\n");
     }
 
-    echo check_line_lengths($filename, file_get_contents($path), $opts);
+    $results = check_line_lengths($filename, file_get_contents($path), $opts);
+    echo cli_report($filename, $results, $opts);
+}
+
+/**
+ */
+function cli_report($filename, $results, $options)
+{
+    $out = "";
+
+    foreach ($results as $result) {
+        $line = $result["line"];
+    
+        if ($options["tr"]) {
+            $line = replace_leading_tabs_with_spaces($line, $options["tw"]);
+        }
+
+        $out .= ($options['fn'] ? $filename.':' : '')
+            .($options['ln'] ? $result['ln'].' ' : '')
+            .$line
+            .($options['sl'] ? " ".$result["sl"] : '')
+            ."\n";
+    }
+
+    return $out;
 }
 
 /**
@@ -68,7 +98,14 @@ foreach ($argv as $filename) {
 function usage()
 {
     return "Usage: ".NAME
-        ." [-H] [-h] [-l] [-m num] [-n] [-p] [-t num] <file> ...\n";
+        ." [-H] [-h] [-l] [-m num] [-n] [-p] [-t num] <file> ...\n"
+        ."    -H      show filenames\n"
+        ."    -h      don't show filenames\n"
+        ."    -l      don't show length\n"
+        ."    -m num  set length limit\n"
+        ."    -n      don't show line numbers\n"
+        ."    -p      don't replace tabs with spaces\n"
+        ."    -t num  set tab width in spaces\n";
 }
 
 /**
