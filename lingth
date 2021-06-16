@@ -172,7 +172,7 @@ function read_config()
 
     foreach ($config_dirs as $dir) {
         if (file_exists($file = $dir."/lingth/config.json")) {
-            //return json_decode(file_get_contents($file), true);
+            return json_decode(file_get_contents($file), true);
         }
     }
 
