@@ -21,6 +21,7 @@ if (php_sapi_name() != "cli") {
 define('NAME', basename(array_shift($argv)));
 
 $opts = array(
+    'cn' => true,
     'ln' => true,
     'sl' => true,
 );
@@ -31,6 +32,7 @@ while (count($argv) && $argv[0][0] == '-') {
 
     for ($ch = 1; $ch < strlen($arg); $ch++) {
         switch ($arg[$ch]) {
+            case 'c': $opts['cn'] = false; break;
             case 'H': $opts['fn'] = true; break;
             case 'h': $opts['fn'] = false; break;
             case 'l': $opts['sl'] = false; break;
@@ -96,7 +98,7 @@ function cli_report($filename, $results, $options)
 
         $out .= ($options['fn'] ? $filename.':' : '')
             .($options['ln'] ? $result['ln'].' ' : '')
-            .$line
+            .($options['cn'] ? $line : '')
             .($options['sl'] ? " ".$result["sl"] : '')
             ."\n";
     }
@@ -113,6 +115,7 @@ function usage()
 {
     return "Usage: ".NAME
         ." [-H] [-h] [-l] [-m num] [-n] [-p] [-t num] <file> ...\n"
+        ."    -c      don't show content\n"
         ."    -H      show filenames\n"
         ."    -h      don't show filenames\n"
         ."    -l      don't show length\n"
