@@ -20,11 +20,9 @@ if (php_sapi_name() != "cli") {
 
 define('NAME', basename(array_shift($argv)));
 
-$opts = array(
-    'cn' => true,
-    'ln' => true,
-    'sl' => true,
-);
+define('ERR_BAD_CONFIG', 1);
+
+$opts = read_config();
 
 // Process any command-line options
 while (count($argv) && $argv[0][0] == '-') {
@@ -148,4 +146,36 @@ function handle_arg($arg, &$args)
     }
 
     return (int)$argval;
+}
+
+/**
+ * Read configuration from json file. Search locations according to the XDG
+ * Base Directory Specification.
+ */
+function read_config()
+{
+    $config_dirs = getenv('XDB_CONFIG_DIRS');
+
+    if ($config_dirs === false) {
+        $config_dirs = array('/etc/xdg');
+    } else {
+        $config_dirs = explode(':', $config_dirs);
+    }
+
+    $config_home = getenv('XDG_CONFIG_HOME');
+
+    if ($config_home === false) {
+        $config_home = getenv('HOME').'/.config';
+    }
+
+    $config_dirs[] = $config_home;
+
+    foreach ($config_dirs as $dir) {
+        if (file_exists($file = $dir."/lingth/config.json")) {
+            //return json_decode(file_get_contents($file), true);
+        }
+    }
+
+    fwrite(STDERR, "bad error: no config file. install one.\n");
+    exit(ERR_BAD_CONFIG);
 }
