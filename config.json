@@ -2,6 +2,7 @@
     "max_length": 80,
     "tab_width": 4,
     "show_content": true,
+    "show_filenames": null,
     "show_line_numbers": true,
     "show_length": true
 }

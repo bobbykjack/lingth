@@ -17,46 +17,54 @@ if (php_sapi_name() != "cli") {
 }
 
 // Store the name of the binary for use in errors, etc.
-define('NAME', basename(array_shift($argv)));
+define("NAME", basename(array_shift($argv)));
 
 // Exit status error values
-define('ERR_BAD_USAGE', 1);
-define('ERR_BAD_CONFIG', 2);
-define('ERR_BAD_FILE', 3);
+define("ERR_BAD_USAGE", 1);
+define("ERR_BAD_CONFIG", 2);
+define("ERR_BAD_FILE", 3);
 
 // Extract options from config file and command line arguments.
 $opts = read_config();
-list($argv, $opts) = proc_options($argv, $opts);
+$opts = proc_options($argv, $opts);
 
-// If not present, this option can depend on the number of inputs: files +
-// standard input.
-if (!array_key_exists('show_filenames', $opts)) {
-    $opts['show_filenames'] = count($argv) > 1
-        || (count($argv) && !posix_isatty(STDIN));
+// If not specified, this option depends on the number of files
+if (!array_key_exists("show_filenames", $opts)
+    || $opts["show_filenames"] == null
+) {
+    $opts["show_filenames"] = count($argv) > 1;
 }
 
+if (count($argv)) {
+    // Handle filenames passed as parameters.
+    foreach ($argv as $filename) {
+        if (($path = realpath($filename)) === false) {
+            fwrite(STDERR, NAME.": $filename: No such file\n");
+            exit(ERR_BAD_FILE);
+        } elseif (is_dir($path)) {
+            fwrite(STDERR, NAME.": $filename: Is a directory\n");
+            exit(ERR_BAD_FILE);
+        }
+
+        $results = check_line_lengths($filename, file_get_contents($path), $opts);
+        echo cli_report($filename, $results, $opts);
+    }
+} else if (!posix_isatty(STDIN)) {
 // Handle any input piped or redirected here.
-if (!posix_isatty(STDIN)) {
-    $str = stream_get_contents(STDIN);
-    $results = check_line_lengths("(standard input)", $str, $opts);
-    echo cli_report("(standard input)", $results, $opts);
-} else if (count($argv) == 0) {
-    fwrite(STDERR, usage());
-    exit(ERR_BAD_USAGE);
-}
+    $line_number = 1;
+    //$str = stream_get_contents(STDIN);
 
-// Handle filenames passed as parameters.
-foreach ($argv as $filename) {
-    if (($path = realpath($filename)) === false) {
-        fwrite(STDERR, NAME.": $filename: No such file\n");
-        exit(ERR_BAD_FILE);
-    } elseif (is_dir($path)) {
-        fwrite(STDERR, NAME.": $filename: Is a directory\n");
-        exit(ERR_BAD_FILE);
+    while (($line = fgets(STDIN)) !== false) {
+        $result = check_line_length(trim($line), $line_number++, $opts);
+        echo cli_report("(standard input)", array($result), $opts);
     }
 
-    $results = check_line_lengths($filename, file_get_contents($path), $opts);
-    echo cli_report($filename, $results, $opts);
+    exit(0);
+    $results = check_line_lengths("(standard input)", $str, $opts);
+    echo cli_report("(standard input)", $results, $opts);
+} else /*if (count($argv) == 0)*/ {
+    fwrite(STDERR, usage());
+    exit(ERR_BAD_USAGE);
 }
 
 
@@ -85,7 +93,7 @@ function read_config()
     $config_dirs[] = $config_home;
 
     foreach ($config_dirs as $dir) {
-        if (file_exists($file = $dir."/lingth/config.json")) {
+        if (file_exists($file = $dir."/".NAME."/config.json")) {
             return json_decode(file_get_contents($file), true);
         }
     }
@@ -97,16 +105,22 @@ function read_config()
 /**
  * Process options from arguments passed to the script.
  * 
- * @param Array $argv Set of strings representing command line arguments.
+ * @param Array $args Set of strings representing command line arguments.
  * @param Array $opts Map of options to overwrite/augment.
  * 
  * @return Array New map of options.
  */
-function proc_options($argv, $opts)
+function proc_options(&$args, $opts)
 {
-    // Process any command-line options
-    while (count($argv) && $argv[0][0] == '-') {
-        $arg = array_shift($argv);
+    while (count($args) && $args[0][0] == '-') {
+        if (($arg = array_shift($args)) == '--') {
+            break;
+        }
+
+        if ($arg == "--help") {
+            fwrite(STDOUT, usage(true));
+            exit(0);
+        }
 
         for ($ch = 1; $ch < strlen($arg); $ch++) {
             switch ($arg[$ch]) {
@@ -114,15 +128,25 @@ function proc_options($argv, $opts)
                 case 'H': $opts['show_filenames'] = true; break;
                 case 'h': $opts['show_filenames'] = false; break;
                 case 'l': $opts['show_length'] = false; break;
-                case 'm': $opts['max_length'] = handle_arg($arg, $argv); break;
+                case 'm': $opts['max_length'] = handle_arg($arg, $args); break;
                 case 'n': $opts['show_line_numbers'] = false; break;
                 case 'p': $opts['replace_tabs'] = false; break;
-                case 't': $opts['tab_width'] = handle_arg($arg, $argv); break;
+                case 't': $opts['tab_width'] = handle_arg($arg, $args); break;
+                default:
+                    if (!is_numeric($arg[$ch])) {
+                        fwrite(
+                            STDERR,
+                            NAME.": illegal option -- ".$arg[$ch]."\n"
+                        );
+                        
+                        fwrite(STDERR, usage());
+                        exit(ERR_BAD_USAGE);
+                    }
             }
         }
     }
 
-    return array($argv, $opts);
+    return $opts;
 }
 
 /**
@@ -159,7 +183,11 @@ function handle_arg($arg, &$args)
 }
 
 /**
- * Check line lengths
+ * Check line lengths.
+ * 
+ * This is the main functionality of lingth, reporting on lines that are
+ * longer than the specified maximum, and including details such as line
+ * numbers.
  *
  * @param String $filename Name representing the file being checked
  * @param String $contents Contents of the file
@@ -170,23 +198,11 @@ function handle_arg($arg, &$args)
 function check_line_lengths($filename, $contents, $options)
 {
     $lines = explode("\n", $contents);
-    $encoding = mb_detect_encoding($contents);
+    $options["encoding"] = mb_detect_encoding($contents);
     $out = array();
 
     foreach ($lines as $line_number => $line) {
-        $line_tr = retab_front($line, $options["tab_width"]);
-
-        if (($len = mb_strlen($line_tr, $encoding)) > $options['max_length']) {
-            $result = array("line" => $line);
-
-            if ($options['show_line_numbers']) {
-                $result['line_number'] = $line_number + 1;
-            }
-
-            if ($options['show_length']) {
-                $result['length'] = $len;
-            }
-
+        if ($result = check_line_length($line, $line_number + 1, $options)) {
             $out[] = $result;
         }
     }
@@ -195,7 +211,35 @@ function check_line_lengths($filename, $contents, $options)
 }
 
 /**
- * Format line-length results for terminal output
+ * @param String $line
+ * @param int    $line_number
+ */
+function check_line_length($line, $line_number, $options)
+{
+    $line_tr = retab_front($line, $options["tab_width"]);
+    $result = false;
+
+    $encoding = array_key_exists("encoding", $options)
+        ? $options["encoding"]
+        : mb_detect_encoding($line);
+
+    if (($len = mb_strlen($line_tr, $encoding)) > $options["max_length"]) {
+        $result = array("line" => $line);
+
+        if ($options["show_line_numbers"]) {
+            $result["line_number"] = $line_number;
+        }
+
+        if ($options["show_length"]) {
+            $result["length"] = $len;
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * Format line-length results for terminal output.
  *
  * @param String $filename Name of file that produced these results
  * @param Array  $results  Results obtained from check_line_lengths()
@@ -225,7 +269,7 @@ function cli_report($filename, $results, $options)
 }
 
 /**
- * Replace leading tabs with equivalent spaces
+ * Replace leading tabs with equivalent spaces.
  *
  * @param string $str       String to replace tabs in
  * @param int    $tab_width Number of spaces to replace each tab with
@@ -250,16 +294,25 @@ function retab_front($str, $tab_width)
  * 
  * @return string usage
  */
-function usage()
+function usage($long = false)
 {
-    return "Usage: ".NAME
-        ." [-H] [-h] [-l] [-m num] [-n] [-p] [-t num] <file> ...\n"
-        ."    -c      don't show content\n"
-        ."    -H      show filenames\n"
-        ."    -h      don't show filenames\n"
-        ."    -l      don't show length\n"
-        ."    -m num  set length limit\n"
-        ."    -n      don't show line numbers\n"
-        ."    -p      don't replace tabs with spaces\n"
-        ."    -t num  set tab width in spaces\n";
+    $out = sprintf("usage: %s [-hHlnp] [-m num] [-t num] [file ...]\n", NAME)
+          .sprintf("       %s [--help]\n", NAME);
+
+    if ($long) {
+        $out .= ""
+            ."  -c      don't show content\n"
+            ."  -H      show filenames\n"
+            ."  -h      don't show filenames\n"
+            ."  -l      don't show length\n"
+            ."  -m num  set length limit\n"
+            ."  -n      don't show line numbers\n"
+            ."  -p      don't replace tabs with spaces\n"
+            ."  -t num  set tab width in spaces\n\n"
+            ."  --help  display this help and exit\n";
+    } else {
+        $out .= sprintf("Try `%s --help' for more information.\n", NAME);
+    }
+
+    return $out;
 }
