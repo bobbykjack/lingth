@@ -216,7 +216,12 @@ function check_line_lengths($filename, $contents, $options)
  */
 function check_line_length($line, $line_number, $options)
 {
-    $line_tr = retab_front($line, $options["tab_width"]);
+    if ($options["replace_tabs"]) {
+        $line_tr = retab_front($line, $options["tab_width"]);
+    } else {
+        $line_tr = $line;
+    }
+
     $result = false;
 
     $encoding = array_key_exists("encoding", $options)
@@ -254,9 +259,9 @@ function cli_report($filename, $results, $options)
     foreach ($results as $result) {
         $line = $result["line"];
     
-        if ($options["replace_tabs"]) {
+        /*if ($options["replace_tabs"]) {
             $line = retab_front($line, $options["tab_width"]);
-        }
+        }*/
 
         $out .= ($options['show_filenames'] ? $filename.':' : '')
             .($options['show_line_numbers'] ? $result['line_number'].' ' : '')
@@ -296,18 +301,21 @@ function retab_front($str, $tab_width)
  */
 function usage($long = false)
 {
-    $out = sprintf("usage: %s [-hHlnp] [-m num] [-t num] [file ...]\n", NAME)
+    $out = sprintf("usage: %s [-chHlnp] [-m num] [-t num] [file ...]\n", NAME)
           .sprintf("       %s [--help]\n", NAME);
 
     if ($long) {
         $out .= ""
             ."  -c      don't show content\n"
-            ."  -H      show filenames\n"
             ."  -h      don't show filenames\n"
+            ."  -H      show filenames\n"
             ."  -l      don't show length\n"
+            ."  -L      show length\n"
             ."  -m num  set length limit\n"
             ."  -n      don't show line numbers\n"
+            ."  -N      show line numbers\n"
             ."  -p      don't replace tabs with spaces\n"
+            ."  -P      replace tabs with spaces\n"
             ."  -t num  set tab width in spaces\n\n"
             ."  --help  display this help and exit\n";
     } else {
