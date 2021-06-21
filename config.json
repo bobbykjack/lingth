@@ -1,6 +1,7 @@
 { 
     "max_length": 80,
     "tab_width": 4,
+    "replace_tabs": true,
     "show_content": true,
     "show_filenames": null,
     "show_line_numbers": true,

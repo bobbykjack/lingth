@@ -17,6 +17,25 @@ same one.
 2. Run by specifying full path to `lingth` command, adding its directory to your
 `PATH` environment variable, or symlinking from a directory already in `PATH`
 
+## Usage
+
+    lingth [-chHlnp] [-m num] [-t num] [file ...]
+           [--help]
+
+- `-c` Don't show content
+- `-h` Don't show filenames
+- `-H`  Show filenames
+- `-l` Don't show length
+- `-L` Show length
+- `-m num` Set length limit
+- `-n` Don't show line numbers
+- `-N` Show line numbers
+- `-p` Don't replace tabs with spaces
+- `-P` Replace tabs with spaces
+- `-t num` Set tab width in spaces
+- `file ...` The pathnames of files to be scanned for long lines. If no file arguments are specified, the standard input is used.
+- `--help` Display this help and exit
+
 ## Examples
 
     lingth *.php

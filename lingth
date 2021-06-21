@@ -36,7 +36,7 @@ if (!array_key_exists("show_filenames", $opts)
 }
 
 if (count($argv)) {
-    // Handle filenames passed as parameters.
+// Handle filenames passed as parameters.
     foreach ($argv as $filename) {
         if (($path = realpath($filename)) === false) {
             fwrite(STDERR, NAME.": $filename: No such file\n");
@@ -52,7 +52,6 @@ if (count($argv)) {
 } else if (!posix_isatty(STDIN)) {
 // Handle any input piped or redirected here.
     $line_number = 1;
-    //$str = stream_get_contents(STDIN);
 
     while (($line = fgets(STDIN)) !== false) {
         $result = check_line_length(trim($line), $line_number++, $opts);
@@ -60,8 +59,10 @@ if (count($argv)) {
     }
 
     exit(0);
+    /*
+    $str = stream_get_contents(STDIN);
     $results = check_line_lengths("(standard input)", $str, $opts);
-    echo cli_report("(standard input)", $results, $opts);
+    echo cli_report("(standard input)", $results, $opts);*/
 } else /*if (count($argv) == 0)*/ {
     fwrite(STDERR, usage());
     exit(ERR_BAD_USAGE);
@@ -257,15 +258,9 @@ function cli_report($filename, $results, $options)
     $out = "";
 
     foreach ($results as $result) {
-        $line = $result["line"];
-    
-        /*if ($options["replace_tabs"]) {
-            $line = retab_front($line, $options["tab_width"]);
-        }*/
-
         $out .= ($options['show_filenames'] ? $filename.':' : '')
             .($options['show_line_numbers'] ? $result['line_number'].' ' : '')
-            .($options['show_content'] ? $line : '')
+            .($options['show_content'] ? $result["line"] : '')
             .($options['show_length'] ? " ".$result["length"] : '')
             ."\n";
     }

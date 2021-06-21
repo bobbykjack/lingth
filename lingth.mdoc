@@ -1,0 +1,96 @@
+.Dd $Mdocdate$
+.Dt LINGTH 1
+.Os
+.Sh NAME
+.Nm lingth
+.Nd Identify lines longer than a given character length.
+.Sh SYNOPSIS
+.Nm lingth
+.Op Fl chHlnp
+.Op Fl m Ar num
+.Op Fl t Ar num
+.Op Ar
+.Sh DESCRIPTION
+The
+.Nm
+utility processes text and reports on lines that are longer than a given number
+of characters. It's useful for keeping to coding standards which, for example,
+specify an 80-character maximum.
+.Pp
+The command line options are as follows:
+.Bl -tag -width Ds
+.It Fl c
+Don't show the content of each matching line.
+.It Fl h
+Don't show filenames alongside reported lines.
+.It Fl H
+Show filenames of all reported lines.
+.It Fl l
+Don't show the character length of reported lines.
+.It Fl L
+Show the character length of all reported lines.
+.It Fl m Ar num 
+Set length limit. Any line containing more than
+.Ar num
+characters will be reported in the output.
+.It Fl n
+Don't show line numbers of reported lines.
+.It Fl N
+Print the line number of each reported line.
+.It Fl p
+Don't replace tabs with spaces.
+.It Fl P
+Replace leading tabs with spaces.
+.It Fl Fl help
+Print the help text and silently exit.
+.It Fl t Ar num
+Set tab width to
+.Ar num
+spaces. This option only affects leading tabs, each of which will be replaced by
+the specified number of spaces, for length comparison only. 
+.El
+.Pp
+The following operands are available:
+.Bl -tag -width indent
+.It Ar file
+The pathname of a file to be scanned for long lines. If no
+.Ar file
+arguments are specified, the standard input is used.
+.El
+.\" .Sh CONTEXT
+.\" For section 9 functions only.
+.\" .Sh IMPLEMENTATION NOTES
+.\" Not used in OpenBSD.
+.\" .Sh RETURN VALUES
+.\" For sections 2, 3, and 9 function return values only.
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev XDB_CONFIG_DIRS
+A set of preference ordered base directories relative to which configuration files should be searched.
+.It Ev XDG_CONFIG_HOME
+A single base directory relative to which user-specific configuration files should be written.
+.It Ev HOME
+The pathname of the user's home directory.
+.El
+.Sh FILES
+.Bl -tag -width Pa -compact
+.It Pa config.json
+Located in a configuration directory (see ENVIRONMENT), this file should contain a JSON object of configuration name/pairs.
+.El
+.Sh EXIT STATUS
+.Ex -std
+.\" .Sh EXAMPLES
+.\" .Sh DIAGNOSTICS
+.\" For sections 1, 4, 6, 7, 8, and 9 printf/stderr messages only.
+.\" .Sh ERRORS
+.\" For sections 2, 3, 4, and 9 errno settings only.
+.\" .Sh SEE ALSO
+.\" .Xr foobar 1
+.\" .Sh STANDARDS
+.\" .Sh HISTORY
+.Sh AUTHORS
+.An Bobby Jack Aq Mt bobbyjack@gmail.com
+.\" .Sh CAVEATS
+.\" .Sh BUGS
+.\" .Sh SECURITY CONSIDERATIONS
+.\" Not used in OpenBSD.
