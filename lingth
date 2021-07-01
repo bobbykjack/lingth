@@ -65,11 +65,7 @@ if (count($argv)) {
     }
 
     exit(0);
-    /*
-    $str = stream_get_contents(STDIN);
-    $results = check_line_lengths("(standard input)", $str, $opts);
-    echo cli_report("(standard input)", $results, $opts);*/
-} else /*if (count($argv) == 0)*/ {
+} else {
     fwrite(STDERR, usage());
     exit(ERR_BAD_USAGE);
 }
