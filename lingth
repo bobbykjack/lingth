@@ -46,7 +46,12 @@ if (count($argv)) {
             exit(ERR_BAD_FILE);
         }
 
-        $results = check_line_lengths($filename, file_get_contents($path), $opts);
+        $results = check_line_lengths(
+            $filename,
+            file_get_contents($path),
+            $opts
+        );
+
         echo cli_report($filename, $results, $opts);
     }
 } else if (!posix_isatty(STDIN)) {
@@ -54,8 +59,9 @@ if (count($argv)) {
     $line_number = 1;
 
     while (($line = fgets(STDIN)) !== false) {
-        $result = check_line_length(trim($line), $line_number++, $opts);
-        echo cli_report("(standard input)", array($result), $opts);
+        if (($result = check_line_length(trim($line), $line_number++, $opts)) !== false) {
+            echo cli_report("(standard input)", array($result), $opts);
+        }
     }
 
     exit(0);
@@ -77,7 +83,7 @@ if (count($argv)) {
  */
 function read_config()
 {
-    $config_dirs = getenv('XDB_CONFIG_DIRS');
+    $config_dirs = getenv('XDG_CONFIG_DIRS');
 
     if ($config_dirs === false) {
         $config_dirs = array('/etc/xdg');
@@ -129,10 +135,10 @@ function proc_options(&$args, $opts)
                 case 'H': $opts['show_filenames'] = true; break;
                 case 'h': $opts['show_filenames'] = false; break;
                 case 'l': $opts['show_length'] = false; break;
-                case 'm': $opts['max_length'] = handle_arg($arg, $args); break;
+                case 'm': $opts['max_length'] = handle_arg(substr($arg, $ch), $args); break;
                 case 'n': $opts['show_line_numbers'] = false; break;
                 case 'p': $opts['replace_tabs'] = false; break;
-                case 't': $opts['tab_width'] = handle_arg($arg, $args); break;
+                case 't': $opts['tab_width'] = handle_arg(substr($arg, $ch), $args); break;
                 default:
                     if (!is_numeric($arg[$ch])) {
                         fwrite(
